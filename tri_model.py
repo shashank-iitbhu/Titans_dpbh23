@@ -1,3 +1,4 @@
+import json
 from transformers import BertTokenizer, BertForSequenceClassification, XLNetTokenizer, XLNetForSequenceClassification, RobertaTokenizer, RobertaForSequenceClassification
 from torch.nn.functional import softmax
 import torch
@@ -72,3 +73,7 @@ result = count_dark_patterns('scraped.txt')
 
 for category, count in result.items():
     print(f"{category}: {count} occurrences")
+
+# Save the result to a JSON file
+with open('result.json', 'w') as json_file:
+    json.dump(result, json_file)
