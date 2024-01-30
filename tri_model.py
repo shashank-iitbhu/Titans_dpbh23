@@ -42,7 +42,7 @@ def predict_dark_patterns(models, tokenizers, input_text):
 
 def count_dark_patterns(text_file):
     with open(text_file, 'r', encoding='utf-8') as file:
-        text_content = file.read()
+        lines = file.readlines()
 
     # Map category names to numeric labels
     category_mapping = {"Urgency": 0, "Not Dark Pattern": 1, "Scarcity": 2, "Misdirection": 3, "Social Proof": 4,
@@ -50,15 +50,13 @@ def count_dark_patterns(text_file):
 
     dark_patterns = {category: 0 for category in category_mapping}
 
-    sentences = re.split(r'[.!?]', text_content)
-
-    for sentence in sentences:
-        if not sentence.strip():
+    for line in lines:
+        if not line.strip():
             continue
 
         individual_predictions = predict_dark_patterns([bert_model, xlnet_model, roberta_model],
                                                       [bert_tokenizer, xlnet_tokenizer, roberta_tokenizer],
-                                                      sentence)
+                                                      line)
 
         # Get majority voted prediction
         majority_category = max(set(individual_predictions), key=individual_predictions.count)
@@ -67,6 +65,7 @@ def count_dark_patterns(text_file):
         dark_patterns[category_name] += 1
 
     return dark_patterns
+
 
 # Assuming 'scraped.txt' is in the same directory as the models
 result = count_dark_patterns('scraped.txt')
