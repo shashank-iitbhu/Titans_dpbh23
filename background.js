@@ -56,6 +56,8 @@ async function sendDataToServer(data, tabId) {
       if (response.ok) {
           const responseData = await response.json();
           console.log(responseData);
+
+          chrome.runtime.sendMessage({ command: 'showResults', data: responseData });
           // Iterate through responseData and highlight elements for each category
           for (const category in responseData) {
             const info = responseData[category];
@@ -77,6 +79,7 @@ async function handleExtensionClick(tab) {
   if (!tab.url.startsWith(extensions)) {
       return;
   }
+//   console.log(tab.id)
 
   const prevState = await chrome.action.getBadgeText({ tabId: tab.id });
   const nextState = prevState === 'ON' ? 'OFF' : 'ON';
@@ -87,34 +90,43 @@ async function handleExtensionClick(tab) {
   });
 
   if (nextState === 'ON') {
-      const resultRightCol = await executeScriptOnTab(tab.id, () => {
-          const targetElement = document.getElementById('rightCol');
-          return targetElement ? targetElement.innerText.trim() : null;
-      });
+    const resultRightCol = await executeScriptOnTab(tab.id, () => {
+        const targetElement = document.getElementById('rightCol');
+        return targetElement ? targetElement.innerText.trim() : null;
+    });
 
-      const resultCenterCol = await executeScriptOnTab(tab.id, () => {
-          const targetElement = document.getElementById('centerCol');
-          return targetElement ? targetElement.innerText.trim() : null;
-      });
+    const resultCenterCol = await executeScriptOnTab(tab.id, () => {
+        const targetElement = document.getElementById('centerCol');
+        return targetElement ? targetElement.innerText.trim() : null;
+    });
 
-      const resultSelectQuantity = await executeScriptOnTab(tab.id, () => {
-          const targetElement = document.getElementById('selectQuantity');
-          return targetElement ? targetElement.innerText.trim() : null;
-      });
+    const resultSelectQuantity = await executeScriptOnTab(tab.id, () => {
+        const targetElement = document.getElementById('selectQuantity');
+        return targetElement ? targetElement.innerText.trim() : null;
+    });
 
-      const resultFeatureBullets = await executeScriptOnTab(tab.id, () => {
-          const targetElement = document.getElementById('feature-bullets');
-          return targetElement ? targetElement.innerText.trim() : null;
-      });
+    const resultFeatureBullets = await executeScriptOnTab(tab.id, () => {
+        const targetElement = document.getElementById('feature-bullets');
+        return targetElement ? targetElement.innerText.trim() : null;
+    });
 
-      const elementsTextContent = [resultRightCol, resultCenterCol].filter(Boolean).join('\n');
-      const joinedTextContent = elementsTextContent.replace(resultSelectQuantity, '');
-    //   const joinedTextContentFinal = joinedTextContent.replace(resultFeatureBullets, '');
+    const resultCard = await executeScriptOnTab(tab.id, () => {
+        const targetElements = document.getElementsByClassName('a-section a-spacing-small puis-padding-left-small puis-padding-right-small');
+        const textContents = [];
+        for (let i = 0; i < 12; i++) {
+            textContents.push(targetElements[i].innerText.trim());
+        }
+        return textContents.join('\n');
+    });
 
-    //   console.log(joinedTextContent);
+    const elementsTextContent = [resultRightCol, resultCenterCol, resultFeatureBullets, resultCard].filter(Boolean).join('\n');
+    const joinedTextContent = elementsTextContent.replace(resultSelectQuantity, '');
 
-      sendDataToServer(joinedTextContent,tab.id);
-  } else if (nextState === 'OFF') {
+    console.log(joinedTextContent);
+
+    sendDataToServer(joinedTextContent, tab.id);
+}
+   else if (nextState === 'OFF') {
       await chrome.scripting.removeCSS({
           files: ['focus-mode.css'],
           target: { tabId: tab.id }
