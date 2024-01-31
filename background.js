@@ -17,7 +17,29 @@ async function executeScriptOnTab(tabId, scriptFunction) {
   return result && result.length > 0 ? result[0].result : null;
 }
 
-async function sendDataToServer(data) {
+// Function to highlight elements based on text strings
+async function highlightElements(tabId, textStrings) {
+    for (const textString of textStrings) {
+        // Find elements with the specified text content and highlight them
+        const elements = await chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            function: (text) => {
+                const elements = document.evaluate(`//*[contains(text(), "${text}")]`, document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+                const highlightedElements = [];
+                for (let i = 0; i < elements.snapshotLength; i++) {
+                    const element = elements.snapshotItem(i);
+                    element.style.border = '4px solid red'; // Change the border style to highlight the element
+                    element.style.backgroundColor = 'aqua'; // Change the border style to highlight the element
+                    highlightedElements.push(element.innerText.trim());
+                }
+                return highlightedElements;
+            },
+            args: [textString]
+        });
+    }
+}
+
+async function sendDataToServer(data, tabId) {
   const serverUrl = 'http://127.0.0.1:5000'; // Adjust the URL based on your server
 
   try {
@@ -34,6 +56,15 @@ async function sendDataToServer(data) {
       if (response.ok) {
           const responseData = await response.json();
           console.log(responseData);
+          // Iterate through responseData and highlight elements for each category
+          for (const category in responseData) {
+            const info = responseData[category];
+            if (info.count > 0) {
+                await highlightElements(tabId, info.text_strings);
+            }
+        }
+
+        console.log('Elements highlighted based on responseData');
       } else {
           console.error('Error receiving response from the server');
       }
@@ -78,11 +109,11 @@ async function handleExtensionClick(tab) {
 
       const elementsTextContent = [resultRightCol, resultCenterCol].filter(Boolean).join('\n');
       const joinedTextContent = elementsTextContent.replace(resultSelectQuantity, '');
-      const joinedTextContentFinal = joinedTextContent.replace(resultFeatureBullets, '');
+    //   const joinedTextContentFinal = joinedTextContent.replace(resultFeatureBullets, '');
 
-      console.log(joinedTextContentFinal);
+    //   console.log(joinedTextContent);
 
-      sendDataToServer(joinedTextContentFinal);
+      sendDataToServer(joinedTextContent,tab.id);
   } else if (nextState === 'OFF') {
       await chrome.scripting.removeCSS({
           files: ['focus-mode.css'],

@@ -41,7 +41,7 @@ def predict_dark_patterns(models, tokenizers, input_text):
 
     return votes
 
-def count_dark_patterns(text_file):
+def count_dark_patterns_with_text(text_file):
     with open(text_file, 'r', encoding='utf-8') as file:
         lines = file.readlines()
 
@@ -49,7 +49,7 @@ def count_dark_patterns(text_file):
     category_mapping = {"Urgency": 0, "Not Dark Pattern": 1, "Scarcity": 2, "Misdirection": 3, "Social Proof": 4,
                         "Obstruction": 5, "Sneaking": 6, "Forced Action": 7}
 
-    dark_patterns = {category: 0 for category in category_mapping}
+    dark_patterns = {category: {"count": 0, "text_strings": []} for category in category_mapping}
 
     for line in lines:
         if not line.strip():
@@ -63,17 +63,21 @@ def count_dark_patterns(text_file):
         majority_category = max(set(individual_predictions), key=individual_predictions.count)
         category_name = next(key for key, value in category_mapping.items() if value == majority_category)
 
-        dark_patterns[category_name] += 1
+        if category_name == "Not Dark Pattern":
+            continue  # Skip "Not Dark Pattern" category
+
+        dark_patterns[category_name]["count"] += 1
+        dark_patterns[category_name]["text_strings"].append(line.strip())
 
     return dark_patterns
 
-
 # Assuming 'scraped.txt' is in the same directory as the models
-result = count_dark_patterns('scraped.txt')
+result_with_text = count_dark_patterns_with_text('scraped.txt')
 
-for category, count in result.items():
-    print(f"{category}: {count} occurrences")
+for category, info in result_with_text.items():
+    print(f"{category}: {info['count']} occurrences")
+    print(f"Text strings: {info['text_strings']}")
 
 # Save the result to a JSON file
 with open('result.json', 'w') as json_file:
-    json.dump(result, json_file)
+    json.dump(result_with_text, json_file)
